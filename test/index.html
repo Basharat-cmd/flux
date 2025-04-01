@@ -8,5 +8,25 @@
 <body>
     <a href="?t=y">yap</a>
     cat shi{{.t:t}}
+
+    name
+    <input type="text" name="name" id="name">
+    author
+    <input type="text" name="author" id="author">
+    <button id = "button"><a href="/:submit=true">this</a></button>
+
+    <script>
+        let name = document.getElementById("name");
+        let author = document.getElementById("author");
+        document.getElementById("button").addEventListener('click',function (){
+            let doc_data = {
+            "name": name.value,
+            "author":author.value
+        }
+            console.log(name,author)
+            window.location.href = `newpage?data=${JSON.stringify(doc_data)}`;
+        });
+
+    </script>
 </body>
 </html>

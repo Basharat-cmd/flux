@@ -7,7 +7,22 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
+
+	_ "github.com/mattn/go-sqlite3"
 )
+
+var (
+	lastRequestedURL string
+	mu               sync.Mutex
+)
+
+// GetRequestedURL returns the last requested URL
+func GetRequestedURL() string {
+	mu.Lock()
+	defer mu.Unlock()
+	return lastRequestedURL
+}
 
 // parseRoutes converts a raw string into a map of paths and messages.
 func parseRoutes(data string) map[string]string {
@@ -67,12 +82,35 @@ func extractQueryParams(content string, r *http.Request) string {
 	return content
 }
 
+// FetchWebPageContent fetches the content of a webpage and returns the HTML as a string
+func FetchWebPageContent(url string) (string, error) {
+	// Make an HTTP GET request
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close() // Always close the response body after use
+
+	// Read the body content
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// Return the body content as a string
+	return string(body), nil
+}
+
 // Server starts an HTTP server with templating support
 func Server(port string, rawRoutes string, notFoundPage string) {
 	routes := parseRoutes(rawRoutes)
 	custom404Message, _, _ := loadFileContent(notFoundPage)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		lastRequestedURL = r.URL.String() // Store the latest requested URL
+		mu.Unlock()
+
 		if message, exists := routes[r.URL.Path]; exists {
 			content, contentType, _ := loadFileContent(message)
 
@@ -104,3 +142,5 @@ func Server(port string, rawRoutes string, notFoundPage string) {
 		fmt.Println("Error starting server:", err)
 	}
 }
+
+// DB

@@ -1,16 +1,37 @@
 package main
 
-import "fserver"
+import (
+	"fmt"
+	"fserver"
+	"strings"
+	"time"
+)
 
 func main() {
-	// Define routes as a string (supports text, HTML, and files)
+
 	routes := `
 	/: file:index.html
 	/hello: Hello, world!
-	/about: file:about.html
+	/newpage: {{.data}}
 	/data: file:data.json
 	`
+	go fserver.Server("8080", routes, "file:custom404.html")
 
-	// Start the server with a custom 404 page (text or file)
-	fserver.Server("8080", routes, "custom404.html")
+	var old_url string = ""
+
+	for {
+		time.Sleep(2 * time.Second)
+		requestedURL := fserver.GetRequestedURL()
+		if requestedURL != "" && requestedURL != old_url {
+			if requestedURL == "/:submit=true" {
+				fmt.Print("sus")
+			} else if strings.Contains(requestedURL, "newpage") {
+				so, _ := fserver.FetchWebPageContent("http://localhost:8080" + requestedURL)
+				fmt.Print(so)
+			}
+			old_url = requestedURL
+		} else {
+			fmt.Println(requestedURL)
+		}
+	}
 }
